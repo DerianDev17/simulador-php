@@ -3,6 +3,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import PublicMobileNav from "@/components/PublicMobileNav.astro";
 import PublicSidebar from "@/components/PublicSidebar.astro";
 import { gameSessionCookie, getGameResult } from "@/lib/game";
+import { ensureLearnerId } from "@/lib/learner";
 import {
   ensureDefaultSettings,
   getCategory,
@@ -24,13 +25,14 @@ import Target from "@lucide/astro/icons/target";
 import Trophy from "@lucide/astro/icons/trophy";
 
 const settings = ensureDefaultSettings();
-const report = getQuizReportSummary();
+const learnerId = ensureLearnerId(Astro.cookies, Astro.request);
+const report = getQuizReportSummary(learnerId);
 const categories = listCategorySummaries();
-const categoryAttempts = listCategoryAttemptSummaries();
+const categoryAttempts = listCategoryAttemptSummaries(learnerId);
 const attemptByCategory = new Map(categoryAttempts.map((attempt) => [attempt.categoryId, attempt]));
 const readyCategories = categories.filter((category) => category.questionCount >= settings.questionsPerGame);
 const firstReadyCategory = readyCategories[0];
-const currentGame = getGameResult(Astro.cookies.get(gameSessionCookie)?.value);
+const currentGame = getGameResult(Astro.cookies.get(gameSessionCookie)?.value, learnerId);
 const activeCategory = currentGame.status === "incomplete" ? getCategory(currentGame.categoryId) : undefined;
 const totalQuestions = categories.reduce((total, category) => total + category.questionCount, 0);
 const bankMinimum = Math.max(categories.length * settings.questionsPerGame, 1);

@@ -1,4 +1,4 @@
-import { eq, lt } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { db, sqlite } from "@/db/client";
 import {
@@ -270,8 +270,16 @@ function answerDetailsFromGame(game: GameSession): GameDetailQuestion[] {
     .filter((entry): entry is GameDetailQuestion => Boolean(entry));
 }
 
-function getStoredAttempt(attemptId: string): QuizAttempt | undefined {
-  return db.select().from(quizAttempts).where(eq(quizAttempts.id, attemptId)).get();
+function getStoredAttempt(attemptId: string, learnerId?: string): QuizAttempt | undefined {
+  if (!learnerId) {
+    return db.select().from(quizAttempts).where(eq(quizAttempts.id, attemptId)).get();
+  }
+
+  return db
+    .select()
+    .from(quizAttempts)
+    .where(and(eq(quizAttempts.id, attemptId), eq(quizAttempts.learnerId, learnerId)))
+    .get();
 }
 
 function getStoredAttemptAnswers(attemptId: string): QuizAttemptAnswer[] {
@@ -311,13 +319,17 @@ function answerDetailsFromAttempt(attempt: QuizAttempt): GameDetailQuestion[] {
   }));
 }
 
-function answerDetailsForGameId(gameId: string): GameDetailQuestion[] {
-  const attempt = getStoredAttempt(gameId);
+function answerDetailsForGameId(gameId: string, learnerId?: string): GameDetailQuestion[] {
+  const attempt = getStoredAttempt(gameId, learnerId);
   if (attempt) {
     return answerDetailsFromAttempt(attempt);
   }
 
   const game = db.select().from(gameSessions).where(eq(gameSessions.id, gameId)).get();
+  if (learnerId && game?.learnerId !== learnerId) {
+    return [];
+  }
+
   return game ? answerDetailsFromGame(game) : [];
 }
 
@@ -340,6 +352,7 @@ function persistCompletedAttempt(game: GameSession): void {
     db.insert(quizAttempts)
       .values({
         id: game.id,
+        learnerId: game.learnerId,
         categoryId: game.categoryId,
         categoryName: category?.name ?? "Categoria",
         totalQuestions,
@@ -384,7 +397,8 @@ export function startOrResumeGame(
   cookies: CookieJar,
   request: Request,
   categoryId: number,
-  requiredQuestions: number
+  requiredQuestions: number,
+  learnerId?: string
 ): GameState {
   cleanupExpiredGames();
 
@@ -396,7 +410,7 @@ export function startOrResumeGame(
   const existingId = cookies.get(gameSessionCookie)?.value;
   if (existingId) {
     const existing = db.select().from(gameSessions).where(eq(gameSessions.id, existingId)).get();
-    if (existing && existing.categoryId === categoryId && existing.completed === 0) {
+    if (existing && existing.categoryId === categoryId && existing.completed === 0 && (!learnerId || existing.learnerId === learnerId)) {
       const existingState = gameStateFromSession(existing, category.name);
       if (existingState.status === "ready") {
         return existingState;
@@ -422,6 +436,7 @@ export function startOrResumeGame(
   db.insert(gameSessions)
     .values({
       id: gameId,
+      learnerId: learnerId ?? null,
       categoryId,
       questionIds: JSON.stringify(selectedQuestions.map((question) => question.id)),
       answers: "[]",
@@ -550,12 +565,12 @@ export function answerCurrentQuestion(
   return { status: completed ? "completed" : "next", game: updated };
 }
 
-export function getGameResult(gameId: string | undefined): GameResult {
+export function getGameResult(gameId: string | undefined, learnerId?: string): GameResult {
   if (!gameId) {
     return { status: "not-found" };
   }
 
-  const attempt = getStoredAttempt(gameId);
+  const attempt = getStoredAttempt(gameId, learnerId);
   if (attempt) {
     return {
       status: "ready",
@@ -576,12 +591,16 @@ export function getGameResult(gameId: string | undefined): GameResult {
     return { status: "not-found" };
   }
 
+  if (learnerId && game.learnerId !== learnerId) {
+    return { status: "not-found" };
+  }
+
   if (game.completed === 0) {
     return { status: "incomplete", categoryId: game.categoryId };
   }
 
   persistCompletedAttempt(game);
-  const storedAttempt = getStoredAttempt(game.id);
+  const storedAttempt = getStoredAttempt(game.id, learnerId);
   if (storedAttempt) {
     return {
       status: "ready",
@@ -618,13 +637,13 @@ export function getGameResult(gameId: string | undefined): GameResult {
   };
 }
 
-export function getErrorReview(gameId: string | undefined): ErrorReviewResult {
-  const result = getGameResult(gameId);
+export function getErrorReview(gameId: string | undefined, learnerId?: string): ErrorReviewResult {
+  const result = getGameResult(gameId, learnerId);
   if (result.status !== "ready") {
     return result;
   }
 
-  const errors = answerDetailsForGameId(result.game.id).filter((answer) => !answer.isCorrect);
+  const errors = answerDetailsForGameId(result.game.id, learnerId).filter((answer) => !answer.isCorrect);
 
   return {
     status: "ready",
@@ -639,8 +658,8 @@ export function getErrorReview(gameId: string | undefined): ErrorReviewResult {
   };
 }
 
-export function getGameDetails(gameId: string | undefined): GameDetailResult {
-  const result = getGameResult(gameId);
+export function getGameDetails(gameId: string | undefined, learnerId?: string): GameDetailResult {
+  const result = getGameResult(gameId, learnerId);
   if (result.status !== "ready") {
     return result;
   }
@@ -654,6 +673,6 @@ export function getGameDetails(gameId: string | undefined): GameDetailResult {
     incorrect: result.incorrect,
     score: result.score,
     durationSeconds: result.durationSeconds,
-    answers: answerDetailsForGameId(result.game.id)
+    answers: answerDetailsForGameId(result.game.id, learnerId)
   };
 }

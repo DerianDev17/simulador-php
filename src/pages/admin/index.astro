@@ -1,7 +1,7 @@
 ---
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import { getAdminSession } from "@/lib/auth";
-import { getQuizReportSummary, getTotalQuestions, listCategorySummaries } from "@/lib/store";
+import { ensureDefaultSettings, getQuizReportSummary, getTotalQuestions, listCategorySummaries } from "@/lib/store";
 import ClipboardList from "@lucide/astro/icons/clipboard-list";
 import CircleGauge from "@lucide/astro/icons/circle-gauge";
 import Sparkles from "@lucide/astro/icons/sparkles";
@@ -15,6 +15,7 @@ if (!session) {
 
 const report = getQuizReportSummary();
 const categories = listCategorySummaries();
+const settings = ensureDefaultSettings();
 const totalQuestions = getTotalQuestions();
 const progressPercent = report.totalAttempts > 0 ? report.averageScore : 0;
 const progressDegrees = Math.round((progressPercent / 100) * 360);
@@ -95,18 +96,28 @@ const progressDegrees = Math.round((progressPercent / 100) * 360);
     <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
       <h2 class="text-lg font-bold text-slate-950 dark:text-white">Preguntas por categoria</h2>
       <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((category, index) => (
-          <div class="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-            <div class="flex items-start justify-between">
-              <span class="grid h-9 w-9 place-items-center rounded-md bg-orange-50 text-xs font-bold text-orange-700 dark:bg-orange-500/15 dark:text-orange-200">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span class="rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">Lista</span>
+        {categories.map((category, index) => {
+          const ready = category.questionCount >= settings.questionsPerGame;
+          return (
+            <div class="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+              <div class="flex items-start justify-between">
+                <span class="grid h-9 w-9 place-items-center rounded-md bg-orange-50 text-xs font-bold text-orange-700 dark:bg-orange-500/15 dark:text-orange-200">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span class:list={[
+                  "rounded-md px-2 py-1 text-[11px] font-bold",
+                  ready
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
+                    : "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200"
+                ]}>
+                  {ready ? "Lista" : "Incompleta"}
+                </span>
+              </div>
+              <p class="mt-3 font-bold text-slate-900 dark:text-white">{category.name}</p>
+              <p class="text-sm text-slate-600 dark:text-slate-400">{category.questionCount} preguntas</p>
             </div>
-            <p class="mt-3 font-bold text-slate-900 dark:text-white">{category.name}</p>
-            <p class="text-sm text-slate-600 dark:text-slate-400">{category.questionCount} preguntas</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   </section>

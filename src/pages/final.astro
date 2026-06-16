@@ -2,11 +2,17 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import PublicMobileNav from "@/components/PublicMobileNav.astro";
 import PublicSidebar from "@/components/PublicSidebar.astro";
+import { getAdminSession } from "@/lib/auth";
 import { gameSessionCookie, getGameResult } from "@/lib/game";
+import { ensureLearnerId } from "@/lib/learner";
 import RotateCcw from "@lucide/astro/icons/rotate-ccw";
 
+const learnerId = ensureLearnerId(Astro.cookies, Astro.request);
+const adminSession = getAdminSession(Astro.cookies);
+Astro.response.headers.set("Cache-Control", "no-store");
+
 const gameId = Astro.url.searchParams.get("game") ?? Astro.cookies.get(gameSessionCookie)?.value;
-const result = getGameResult(gameId);
+const result = getGameResult(gameId, adminSession ? undefined : learnerId);
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);

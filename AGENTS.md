@@ -120,8 +120,8 @@ Rutas admin:
 | `/admin/preguntas/nueva` | Crear categoria y pregunta |
 | `/admin/preguntas/[id]/editar` | Editar pregunta |
 | `/admin/usuarios` | Vista admin de usuario/acceso |
-| `/admin/importar` | Placeholder admin para importacion |
-| `/admin/reportes` | Reportes admin |
+| `/admin/importar` | Importacion CSV validada |
+| `/admin/reportes` | Reportes admin persistidos |
 | `/admin/configuracion` | Usuario, password y preguntas por juego |
 
 ## Estado actual de modulos
@@ -135,10 +135,13 @@ Implementado:
 - Resultado.
 - Detalle completo de resultado por partida completada.
 - Repaso de errores por partida completada.
+- Historial publico persistente por visitante anonimo.
 - Login/logout admin.
 - Dashboard admin.
 - CRUD de categorias.
 - CRUD de preguntas.
+- Importador CSV admin con validacion previa.
+- Reportes admin basados en intentos persistidos.
 - Configuracion admin.
 - Paginas admin separadas para categorias, simulacros, reportes, usuarios e importar.
 
@@ -146,8 +149,7 @@ Parcial o placeholder:
 
 - `/admin/simulacros`: resumen administrativo, no configuracion avanzada.
 - `/admin/usuarios`: muestra usuario admin, no multiusuario.
-- `/admin/importar`: pagina reservada, sin importacion real.
-- `/admin/reportes`: resumen basico, no analitica historica.
+- `/admin/reportes`: resumen persistido basico, no analitica avanzada.
 
 ## Base de datos
 
@@ -165,6 +167,7 @@ Tablas principales:
 - `stats`: visitas, respondidas y completadas.
 - `admin_sessions`: sesiones admin y CSRF.
 - `game_sessions`: partidas server-side.
+- `quiz_attempts`: intentos completados para historial y reportes.
 
 Notas:
 
@@ -224,10 +227,10 @@ Los E2E actuales cubren:
 
 ## Prioridades siguientes
 
-1. Definir modelo de historial/intentos persistente para soportar Historial y Reportes reales.
+1. Ampliar el historial persistente si se decide multiusuario real.
 2. Redisenar `/jugar/[categoryId]` al mockup nuevo y revisar UX responsive.
-3. Mejorar `/final` con resumen real por categoria e historial persistido.
-4. Convertir `/admin/importar` en importador CSV/Excel con validacion previa.
+3. Mejorar `/final` con mas comparativas por categoria.
+4. Ampliar `/admin/importar` a Excel si hace falta.
 5. Decidir si habra multiusuario real antes de ampliar `/admin/usuarios`.
 6. Revisar accesibilidad completa: focus, contraste, labels y navegacion teclado.
 7. Preparar modo produccion: cambio de credenciales, backups de `data/`, variables de entorno y despliegue Node.

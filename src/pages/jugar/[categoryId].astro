@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { answerCurrentQuestion, startOrResumeGame } from "@/lib/game";
+import { ensureLearnerId } from "@/lib/learner";
 import { ensureDefaultSettings } from "@/lib/store";
 import { correctOptionSchema } from "@/lib/validation";
 import Sun from "@lucide/astro/icons/sun";
@@ -12,6 +13,8 @@ let message = "";
 if (!Number.isInteger(categoryId) || categoryId <= 0) {
   return Astro.redirect("/");
 }
+
+const learnerId = ensureLearnerId(Astro.cookies, Astro.request);
 
 if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
@@ -33,7 +36,7 @@ if (Astro.request.method === "POST") {
   }
 }
 
-const state = startOrResumeGame(Astro.cookies, Astro.request, categoryId, settings.questionsPerGame);
+const state = startOrResumeGame(Astro.cookies, Astro.request, categoryId, settings.questionsPerGame, learnerId);
 ---
 
 <BaseLayout
@@ -42,7 +45,7 @@ const state = startOrResumeGame(Astro.cookies, Astro.request, categoryId, settin
   robots="noindex, nofollow"
 >
   <main id="contenido" class="min-h-screen px-3 py-3 sm:px-5 sm:py-5 lg:p-6">
-    <div class="mx-auto max-w-7xl rounded-lg border border-slate-200/80 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/85">
+    <div class="alive-card mx-auto max-w-7xl rounded-lg border border-slate-200/80 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/85">
       <header class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-white/10 sm:px-5">
         <a href="/" class="flex items-center gap-3">
           <img src="/img/eus-logo.png" alt="Eus3" class="h-10 w-10 rounded-md object-contain" />
@@ -96,13 +99,17 @@ const state = startOrResumeGame(Astro.cookies, Astro.request, categoryId, settin
               aria-valuemax={state.totalQuestions}
               aria-valuenow={state.currentNumber}
             >
-              <div class="h-full rounded-md bg-orange-600" style={`width: ${(state.currentNumber / state.totalQuestions) * 100}%`}></div>
+              <div class="h-full rounded-md bg-orange-600 transition-[width] duration-500 motion-reduce:transition-none" style={`width: ${(state.currentNumber / state.totalQuestions) * 100}%`}></div>
             </div>
 
             {message && <p class="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-200" role="alert">{message}</p>}
 
             <section class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
-              <article class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900 sm:p-7">
+              <article class="alive-card motion-reveal rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900 sm:p-7">
+                <p class="mb-3 inline-flex items-center gap-2 rounded-md bg-orange-50 px-2.5 py-1 text-xs font-black uppercase text-orange-700 dark:bg-orange-500/15 dark:text-orange-200">
+                  <span class="pulse-dot" aria-hidden="true"></span>
+                  Pregunta activa
+                </p>
                 <h1 class="text-xl font-bold leading-8 text-slate-950 dark:text-white">{state.question.prompt}</h1>
                 {state.question.imagePath && (
                   <div class="mt-5 grid min-h-44 place-items-center rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-950">
@@ -121,7 +128,7 @@ const state = startOrResumeGame(Astro.cookies, Astro.request, categoryId, settin
                       ["C", state.question.optionC],
                       ["D", state.question.optionD]
                     ].map(([value, label]) => (
-                      <label class="flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-slate-200 bg-white p-3 transition hover:border-emerald-300 hover:bg-emerald-50 has-checked:border-emerald-500 has-checked:bg-emerald-50 dark:border-white/10 dark:bg-slate-950 dark:hover:border-emerald-400/50 dark:hover:bg-emerald-500/10 dark:has-checked:border-emerald-400 dark:has-checked:bg-emerald-500/10">
+                      <label class="alive-card flex min-h-14 cursor-pointer items-center gap-3 rounded-md border border-slate-200 bg-white p-3 transition hover:border-emerald-300 hover:bg-emerald-50 has-checked:border-emerald-500 has-checked:bg-emerald-50 dark:border-white/10 dark:bg-slate-950 dark:hover:border-emerald-400/50 dark:hover:bg-emerald-500/10 dark:has-checked:border-emerald-400 dark:has-checked:bg-emerald-500/10">
                         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-slate-100 text-sm font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{value}</span>
                         <span class="min-w-0 flex-1 font-semibold leading-5 text-slate-800 dark:text-slate-100">{label}</span>
                         <input class="h-5 w-5 shrink-0 accent-emerald-600" type="radio" name="answer" value={value} required />
@@ -138,7 +145,7 @@ const state = startOrResumeGame(Astro.cookies, Astro.request, categoryId, settin
                 </form>
               </article>
 
-              <aside class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+              <aside class="alive-card motion-reveal rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900" style="--reveal-delay: 80ms">
                 <h2 class="font-bold text-slate-950 dark:text-white">Navegacion</h2>
                 <div class="mt-4 grid grid-cols-4 gap-2">
                   {Array.from({ length: state.totalQuestions }, (_, index) => {

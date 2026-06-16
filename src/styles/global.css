@@ -92,3 +92,125 @@ textarea {
   color: #111827;
   background: #fed7aa;
 }
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.875rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes energy-scan {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+.motion-reveal {
+  animation: reveal-up 520ms ease both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.alive-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.alive-card::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  background: linear-gradient(110deg, transparent 0%, rgba(249, 115, 22, 0.1) 42%, rgba(14, 165, 233, 0.08) 52%, transparent 64%);
+  transform: translateX(-45%);
+  transition:
+    opacity 180ms ease,
+    transform 520ms ease;
+}
+
+.alive-card:hover,
+.alive-card:focus-within {
+  transform: translateY(-0.125rem);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+}
+
+.alive-card:hover::after,
+.alive-card:focus-within::after {
+  opacity: 1;
+  transform: translateX(45%);
+}
+
+.pulse-dot {
+  position: relative;
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.14);
+  animation: pulse-soft 1.8s ease-in-out infinite;
+}
+
+.energy-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.26) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 72%, transparent);
+}
+
+.energy-scan {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  animation: energy-scan 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-reveal,
+  .pulse-dot,
+  .energy-scan {
+    animation: none;
+  }
+
+  .alive-card,
+  .alive-card::after {
+    transition: none;
+  }
+
+  .alive-card:hover,
+  .alive-card:focus-within {
+    transform: none;
+  }
+}

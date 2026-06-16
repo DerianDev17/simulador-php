@@ -67,6 +67,7 @@ export function runMigrations(sqlite: Database.Database): void {
 
     CREATE TABLE IF NOT EXISTS game_sessions (
       id TEXT PRIMARY KEY,
+      learner_id TEXT,
       category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
       question_ids TEXT NOT NULL,
       answers TEXT NOT NULL DEFAULT '[]',
@@ -81,6 +82,7 @@ export function runMigrations(sqlite: Database.Database): void {
 
     CREATE TABLE IF NOT EXISTS quiz_attempts (
       id TEXT PRIMARY KEY,
+      learner_id TEXT,
       category_id INTEGER NOT NULL,
       category_name TEXT NOT NULL,
       total_questions INTEGER NOT NULL,
@@ -130,4 +132,14 @@ export function runMigrations(sqlite: Database.Database): void {
   if (!columnExists(sqlite, "game_sessions", "answers")) {
     sqlite.prepare("ALTER TABLE game_sessions ADD COLUMN answers TEXT NOT NULL DEFAULT '[]'").run();
   }
+
+  if (!columnExists(sqlite, "game_sessions", "learner_id")) {
+    sqlite.prepare("ALTER TABLE game_sessions ADD COLUMN learner_id TEXT").run();
+  }
+
+  if (!columnExists(sqlite, "quiz_attempts", "learner_id")) {
+    sqlite.prepare("ALTER TABLE quiz_attempts ADD COLUMN learner_id TEXT").run();
+  }
+
+  sqlite.prepare("CREATE INDEX IF NOT EXISTS quiz_attempts_learner_idx ON quiz_attempts(learner_id)").run();
 }

@@ -2,6 +2,7 @@
 import PublicMobileNav from "@/components/PublicMobileNav.astro";
 import PublicSidebar from "@/components/PublicSidebar.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { ensureLearnerId } from "@/lib/learner";
 import { getQuizReportSummary, listCategoryAttemptSummaries, listRecentQuizAttempts } from "@/lib/store";
 import CalendarDays from "@lucide/astro/icons/calendar-days";
 import ChartColumn from "@lucide/astro/icons/chart-column";
@@ -12,9 +13,12 @@ import RotateCcw from "@lucide/astro/icons/rotate-ccw";
 import Target from "@lucide/astro/icons/target";
 import Trophy from "@lucide/astro/icons/trophy";
 
-const report = getQuizReportSummary();
-const attempts = listRecentQuizAttempts(24);
-const categoryAttempts = listCategoryAttemptSummaries();
+const learnerId = ensureLearnerId(Astro.cookies, Astro.request);
+Astro.response.headers.set("Cache-Control", "no-store");
+
+const report = getQuizReportSummary(learnerId);
+const attempts = listRecentQuizAttempts(24, learnerId);
+const categoryAttempts = listCategoryAttemptSummaries(learnerId);
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);

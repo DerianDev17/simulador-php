@@ -4,6 +4,7 @@ import PublicMobileNav from "@/components/PublicMobileNav.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import BenefitCard from "@/components/BenefitCard.astro";
 import { gameSessionCookie, getGameResult } from "@/lib/game";
+import { ensureLearnerId } from "@/lib/learner";
 import { ensureDefaultSettings, getCategory, getQuizReportSummary, listCategorySummaries } from "@/lib/store";
 import ChartColumn from "@lucide/astro/icons/chart-column";
 import ChevronRight from "@lucide/astro/icons/chevron-right";
@@ -20,18 +21,20 @@ import Timer from "@lucide/astro/icons/timer";
 import Trophy from "@lucide/astro/icons/trophy";
 
 const settings = ensureDefaultSettings();
-const report = getQuizReportSummary();
+const learnerId = ensureLearnerId(Astro.cookies, Astro.request);
+const report = getQuizReportSummary(learnerId);
 const categories = listCategorySummaries();
 const readyCategories = categories.filter((category) => category.questionCount >= settings.questionsPerGame);
 const pendingCategories = categories.filter((category) => category.questionCount < settings.questionsPerGame);
 const totalQuestions = categories.reduce((total, category) => total + category.questionCount, 0);
 const firstReadyCategory = readyCategories[0];
 const heroHref = firstReadyCategory ? `/jugar/${firstReadyCategory.id}` : "#disponibles";
+const heroLabel = firstReadyCategory ? "Iniciar simulacro" : "Ver disponibles";
 const estimatedMinutes = Math.max(settings.questionsPerGame * 2, 1);
 const progressPercent = report.totalAttempts > 0 ? report.averageScore : 0;
 const progressDegrees = Math.round((progressPercent / 100) * 360);
 
-const currentGame = getGameResult(Astro.cookies.get(gameSessionCookie)?.value);
+const currentGame = getGameResult(Astro.cookies.get(gameSessionCookie)?.value, learnerId);
 const activeCategory = currentGame.status === "incomplete" ? getCategory(currentGame.categoryId) : undefined;
 
 const summaryCards = [
@@ -174,7 +177,7 @@ const supportCards = [
                     Inicia un intento con preguntas aleatorias y revisa el resultado al terminar.
                   </p>
                   <a href={heroHref} class="focus-ring mt-6 inline-flex items-center gap-2 rounded-md bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm hover:bg-orange-50">
-                    Iniciar simulacro
+                    {heroLabel}
                     <Play size={16} fill="currentColor" aria-hidden="true" />
                   </a>
                 </div>

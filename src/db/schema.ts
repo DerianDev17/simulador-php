@@ -59,6 +59,7 @@ export const loginAttempts = sqliteTable("login_attempts", {
 
 export const gameSessions = sqliteTable("game_sessions", {
   id: text("id").primaryKey(),
+  learnerId: text("learner_id"),
   categoryId: integer("category_id")
     .notNull()
     .references(() => categories.id, { onDelete: "cascade" }),
@@ -77,6 +78,7 @@ export const quizAttempts = sqliteTable(
   "quiz_attempts",
   {
     id: text("id").primaryKey(),
+    learnerId: text("learner_id"),
     categoryId: integer("category_id").notNull(),
     categoryName: text("category_name").notNull(),
     totalQuestions: integer("total_questions").notNull(),
@@ -89,7 +91,8 @@ export const quizAttempts = sqliteTable(
   },
   (table) => [
     index("quiz_attempts_finished_at_idx").on(table.finishedAt),
-    index("quiz_attempts_category_idx").on(table.categoryId)
+    index("quiz_attempts_category_idx").on(table.categoryId),
+    index("quiz_attempts_learner_idx").on(table.learnerId)
   ]
 );
 

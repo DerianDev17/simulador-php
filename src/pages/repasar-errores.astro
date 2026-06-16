@@ -2,7 +2,9 @@
 import PublicSidebar from "@/components/PublicSidebar.astro";
 import PublicMobileNav from "@/components/PublicMobileNav.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getAdminSession } from "@/lib/auth";
 import { gameSessionCookie, getErrorReview } from "@/lib/game";
+import { ensureLearnerId } from "@/lib/learner";
 import ArrowLeft from "@lucide/astro/icons/arrow-left";
 import BookOpen from "@lucide/astro/icons/book-open";
 import CircleCheck from "@lucide/astro/icons/circle-check";
@@ -10,8 +12,12 @@ import CircleX from "@lucide/astro/icons/circle-x";
 import RotateCcw from "@lucide/astro/icons/rotate-ccw";
 import Target from "@lucide/astro/icons/target";
 
+const learnerId = ensureLearnerId(Astro.cookies, Astro.request);
+const adminSession = getAdminSession(Astro.cookies);
+Astro.response.headers.set("Cache-Control", "no-store");
+
 const gameId = Astro.url.searchParams.get("game") ?? Astro.cookies.get(gameSessionCookie)?.value;
-const review = getErrorReview(gameId);
+const review = getErrorReview(gameId, adminSession ? undefined : learnerId);
 
 if (review.status === "incomplete") {
   return Astro.redirect(`/jugar/${review.categoryId}`);

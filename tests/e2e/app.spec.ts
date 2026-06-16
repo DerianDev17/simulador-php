@@ -76,9 +76,34 @@ test("public user can complete a seeded quiz", async ({ page }) => {
   }
 });
 
+test("public history is scoped to the current visitor", async ({ browser }) => {
+  const category = await createWrongAnswerQuizCategory();
+  const learnerContext = await browser.newContext();
+  const otherContext = await browser.newContext();
+  const learnerPage = await learnerContext.newPage();
+  const otherPage = await otherContext.newPage();
+
+  try {
+    await completeSeededQuiz(learnerPage, category.name);
+    await learnerPage.goto("/historial");
+    await expect(learnerPage.getByRole("cell", { name: category.name })).toBeVisible();
+
+    await otherPage.goto("/historial");
+    await expect(otherPage.getByRole("heading", { name: "Aun no hay intentos" })).toBeVisible();
+    await expect(otherPage.getByText(category.name)).toHaveCount(0);
+  } finally {
+    await learnerContext.close();
+    await otherContext.close();
+    await deleteCategoryAndImages(category.id);
+  }
+});
+
 test("public mobile navigation is available across public pages", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+
+  await expect(page.getByRole("region", { name: "Pulso actual del simulador" })).toBeVisible();
+  await expect(page.getByText("Categorias listas")).toBeVisible();
 
   const mobileNav = page.getByRole("navigation", { name: "Navegacion publica movil" });
   await expect(mobileNav.getByRole("link", { name: "Inicio" })).toHaveAttribute("aria-current", "page");

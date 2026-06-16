@@ -18,6 +18,7 @@ if (existingSession && Astro.request.method === "GET") {
 }
 
 let message = "";
+const showDevCredentialsHint = import.meta.env.DEV;
 
 if (Astro.request.method === "POST") {
   const formData = await Astro.request.formData();
@@ -66,7 +67,9 @@ if (Astro.request.method === "POST") {
         <div class="max-w-xl">
           <p class="text-sm font-bold text-orange-700 dark:text-orange-200">Iniciar sesion</p>
           <h2 class="mt-2 text-3xl font-bold text-slate-950 dark:text-white">Ingresa tus credenciales para continuar.</h2>
-          <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Puedes usar temporalmente admin/admin.</p>
+          {showDevCredentialsHint && (
+            <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Puedes usar temporalmente admin/admin.</p>
+          )}
         </div>
 
         {message && <p class="mt-6 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/15 dark:text-red-200" role="alert" aria-live="assertive">{message}</p>}

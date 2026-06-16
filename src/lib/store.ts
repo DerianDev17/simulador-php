@@ -83,6 +83,25 @@ export type QuestionImportSummary = {
   createdCategories: number;
 };
 
+function normalizeQuestionPrompt(prompt: string): string {
+  return prompt.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function attemptWhereClause(learnerId?: string, extraConditions: string[] = []): { clause: string; params: string[] } {
+  const conditions = [...extraConditions];
+  const params: string[] = [];
+
+  if (learnerId) {
+    conditions.unshift("learner_id = ?");
+    params.push(learnerId);
+  }
+
+  return {
+    clause: conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "",
+    params
+  };
+}
+
 export function getSettings(): Settings | undefined {
   return db.select().from(settings).where(eq(settings.id, 1)).get();
 }
@@ -298,7 +317,8 @@ export function listQuestions(filters: QuestionFilters = {}): QuestionWithCatego
     .all(...params) as QuestionWithCategory[];
 }
 
-export function getQuizReportSummary(): QuizReportSummary {
+export function getQuizReportSummary(learnerId?: string): QuizReportSummary {
+  const baseWhere = attemptWhereClause(learnerId);
   const totals = sqlite
     .prepare(
       `
@@ -309,37 +329,41 @@ export function getQuizReportSummary(): QuizReportSummary {
         COALESCE(ROUND(AVG(score)), 0) AS averageScore,
         COALESCE(ROUND(AVG(duration_seconds)), 0) AS averageDurationSeconds
       FROM quiz_attempts
+      ${baseWhere.clause}
     `
     )
-    .get() as Omit<QuizReportSummary, "completedToday" | "bestCategoryName" | "bestCategoryScore" | "weakestCategoryName" | "weakestCategoryScore">;
+    .get(...baseWhere.params) as Omit<QuizReportSummary, "completedToday" | "bestCategoryName" | "bestCategoryScore" | "weakestCategoryName" | "weakestCategoryScore">;
 
+  const todayWhere = attemptWhereClause(learnerId, ["date(finished_at, 'localtime') = date('now', 'localtime')"]);
   const completedToday = sqlite
-    .prepare("SELECT COUNT(*) AS count FROM quiz_attempts WHERE date(finished_at, 'localtime') = date('now', 'localtime')")
-    .get() as { count: number };
+    .prepare(`SELECT COUNT(*) AS count FROM quiz_attempts ${todayWhere.clause}`)
+    .get(...todayWhere.params) as { count: number };
 
   const best = sqlite
     .prepare(
       `
       SELECT category_name AS categoryName, ROUND(AVG(score)) AS averageScore
       FROM quiz_attempts
+      ${baseWhere.clause}
       GROUP BY category_id, category_name
       ORDER BY AVG(score) DESC, COUNT(*) DESC, category_name COLLATE NOCASE
       LIMIT 1
     `
     )
-    .get() as { categoryName: string; averageScore: number } | undefined;
+    .get(...baseWhere.params) as { categoryName: string; averageScore: number } | undefined;
 
   const weakest = sqlite
     .prepare(
       `
       SELECT category_name AS categoryName, ROUND(AVG(score)) AS averageScore
       FROM quiz_attempts
+      ${baseWhere.clause}
       GROUP BY category_id, category_name
       ORDER BY AVG(score) ASC, COUNT(*) DESC, category_name COLLATE NOCASE
       LIMIT 1
     `
     )
-    .get() as { categoryName: string; averageScore: number } | undefined;
+    .get(...baseWhere.params) as { categoryName: string; averageScore: number } | undefined;
 
   return {
     totalAttempts: Number(totals.totalAttempts),
@@ -355,7 +379,8 @@ export function getQuizReportSummary(): QuizReportSummary {
   };
 }
 
-export function listRecentQuizAttempts(limit = 6): RecentQuizAttempt[] {
+export function listRecentQuizAttempts(limit = 6, learnerId?: string): RecentQuizAttempt[] {
+  const where = attemptWhereClause(learnerId);
   return sqlite
     .prepare(
       `
@@ -370,14 +395,16 @@ export function listRecentQuizAttempts(limit = 6): RecentQuizAttempt[] {
         duration_seconds AS durationSeconds,
         finished_at AS finishedAt
       FROM quiz_attempts
+      ${where.clause}
       ORDER BY finished_at DESC
       LIMIT ?
     `
     )
-    .all(limit) as RecentQuizAttempt[];
+    .all(...where.params, limit) as RecentQuizAttempt[];
 }
 
-export function listCategoryAttemptSummaries(): CategoryAttemptSummary[] {
+export function listCategoryAttemptSummaries(learnerId?: string): CategoryAttemptSummary[] {
+  const where = attemptWhereClause(learnerId);
   return sqlite
     .prepare(
       `
@@ -392,11 +419,12 @@ export function listCategoryAttemptSummaries(): CategoryAttemptSummary[] {
         SUM(correct_count) AS totalCorrect,
         MAX(finished_at) AS lastFinishedAt
       FROM quiz_attempts
+      ${where.clause}
       GROUP BY category_id, category_name
       ORDER BY lastFinishedAt DESC, category_name COLLATE NOCASE
     `
     )
-    .all() as CategoryAttemptSummary[];
+    .all(...where.params) as CategoryAttemptSummary[];
 }
 
 export function getQuestion(id: number): Question | undefined {
@@ -476,12 +504,11 @@ export function importQuestionRows(rows: ParsedImportQuestion[]): QuestionImport
   return importRows();
 }
 
-export function findQuestionByCategoryAndPrompt(categoryId: number, prompt: string): Question | undefined {
-  return db
-    .select()
-    .from(questions)
-    .where(and(eq(questions.categoryId, categoryId), eq(questions.prompt, prompt)))
-    .get();
+export function findQuestionByCategoryAndPrompt(categoryId: number, prompt: string, excludeId?: number): Question | undefined {
+  const normalizedPrompt = normalizeQuestionPrompt(prompt);
+  return getQuestionsForCategory(categoryId).find(
+    (question) => question.id !== excludeId && normalizeQuestionPrompt(question.prompt) === normalizedPrompt
+  );
 }
 
 export function updateQuestion(id: number, input: QuestionInput): void {

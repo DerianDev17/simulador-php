@@ -30,9 +30,15 @@ function pruneLoginAttempts(): void {
   db.delete(loginAttempts).where(lt(loginAttempts.attemptedAt, loginWindowStart())).run();
 }
 
+function trustProxyHeaders(): boolean {
+  return process.env.TRUST_PROXY === "true";
+}
+
 export function loginIdentifier(request: Request, username: string): string {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = forwardedFor || request.headers.get("x-real-ip") || "local";
+  const trustedProxy = trustProxyHeaders();
+  const forwardedFor = trustedProxy ? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() : undefined;
+  const realIp = trustedProxy ? request.headers.get("x-real-ip") : undefined;
+  const ip = forwardedFor || realIp || "local";
   return `${ip}:${username.trim().toLowerCase() || "unknown"}`;
 }
 

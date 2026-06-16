@@ -1,7 +1,7 @@
 ---
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import { getAdminSession, verifyAdminCsrf } from "@/lib/auth";
-import { getQuestion, listCategories, updateQuestion } from "@/lib/store";
+import { findQuestionByCategoryAndPrompt, getQuestion, listCategories, updateQuestion } from "@/lib/store";
 import { deleteQuestionImage, saveQuestionImage } from "@/lib/uploads";
 import { questionSchema } from "@/lib/validation";
 
@@ -41,6 +41,8 @@ if (Astro.request.method === "POST") {
 
   if (!parsed.success) {
     message = parsed.error.issues[0]?.message ?? "Pregunta invalida.";
+  } else if (findQuestionByCategoryAndPrompt(parsed.data.categoryId, parsed.data.prompt, id)) {
+    message = "Ya existe una pregunta igual en esta categoria.";
   } else {
     const imageValue = formData.get("image");
     const imageResult = await saveQuestionImage(imageValue instanceof File ? imageValue : null);

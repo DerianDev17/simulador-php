@@ -91,19 +91,36 @@ describe("store and game flow", () => {
   });
 
   it("rate limits repeated failed admin login attempts", () => {
+    const previousTrustProxy = process.env.TRUST_PROXY;
     const request = new Request("http://localhost/admin/login", {
       headers: { "x-forwarded-for": "203.0.113.10" }
     });
-    const identifier = auth.loginIdentifier(request, "admin");
 
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      delete process.env.TRUST_PROXY;
+      expect(auth.loginIdentifier(request, "admin")).toBe("local:admin");
+
+      process.env.TRUST_PROXY = "true";
+      const identifier = auth.loginIdentifier(request, "admin");
+      expect(identifier).toBe("203.0.113.10:admin");
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        expect(auth.isLoginRateLimited(identifier)).toBe(false);
+        auth.recordFailedLogin(identifier);
+      }
+
+      expect(auth.isLoginRateLimited(identifier)).toBe(true);
+      auth.clearLoginAttempts(identifier);
       expect(auth.isLoginRateLimited(identifier)).toBe(false);
-      auth.recordFailedLogin(identifier);
+    } finally {
+      auth.clearLoginAttempts("local:admin");
+      auth.clearLoginAttempts("203.0.113.10:admin");
+      if (previousTrustProxy === undefined) {
+        delete process.env.TRUST_PROXY;
+      } else {
+        process.env.TRUST_PROXY = previousTrustProxy;
+      }
     }
-
-    expect(auth.isLoginRateLimited(identifier)).toBe(true);
-    auth.clearLoginAttempts(identifier);
-    expect(auth.isLoginRateLimited(identifier)).toBe(false);
   });
 
   it("keeps the current admin session and removes older sessions when credentials change", () => {
@@ -207,6 +224,54 @@ describe("store and game flow", () => {
     expect(report.totalAttempts).toBeGreaterThanOrEqual(1);
     expect(report.totalAnswered).toBeGreaterThanOrEqual(3);
     expect(report.totalCorrect).toBeGreaterThanOrEqual(3);
+  });
+
+  it("filters public quiz history by learner id", () => {
+    const suffix = Date.now().toString();
+    const categoryId = store.createCategory(`Categoria aislada ${suffix}`);
+    for (let index = 1; index <= 3; index += 1) {
+      store.createQuestion({
+        categoryId,
+        prompt: `Pregunta aislada ${suffix}-${index}`,
+        optionA: "A",
+        optionB: "B",
+        optionC: "C",
+        optionD: "D",
+        correctOption: "A"
+      });
+    }
+
+    const request = new Request("http://localhost/");
+    const completeForLearner = (learnerId: string): string => {
+      const cookies = createCookieJar();
+      let state = game.startOrResumeGame(cookies, request, categoryId, 3, learnerId);
+      expect(state.status).toBe("ready");
+
+      let lastGameId = "";
+      while (state.status === "ready") {
+        lastGameId = state.game.id;
+        const outcome = game.answerCurrentQuestion(cookies, categoryId, state.question.id, state.answerToken, "A");
+        if (outcome.status === "completed") {
+          return outcome.game.id;
+        }
+        state = game.startOrResumeGame(cookies, request, categoryId, 3, learnerId);
+      }
+
+      return lastGameId;
+    };
+
+    const learnerA = `learner-a-${suffix}`;
+    const learnerB = `learner-b-${suffix}`;
+    const gameA = completeForLearner(learnerA);
+    const gameB = completeForLearner(learnerB);
+
+    expect(store.getQuizReportSummary(learnerA).totalAttempts).toBe(1);
+    expect(store.getQuizReportSummary(learnerB).totalAttempts).toBe(1);
+    expect(store.getQuizReportSummary(`learner-c-${suffix}`).totalAttempts).toBe(0);
+    expect(store.listRecentQuizAttempts(10, learnerA).map((attempt) => attempt.id)).toEqual([gameA]);
+    expect(store.listRecentQuizAttempts(10, learnerB).map((attempt) => attempt.id)).toEqual([gameB]);
+    expect(game.getGameResult(gameB, learnerA).status).toBe("not-found");
+    expect(game.getGameDetails(gameA, learnerA).status).toBe("ready");
   });
 
   it("stores wrong answers for error review", () => {
@@ -365,6 +430,22 @@ describe("store and game flow", () => {
     const byCategory = store.listQuestions({ categoryId: readingCategoryId, search: "filtrable" });
     expect(byCategory).toHaveLength(1);
     expect(byCategory[0]?.categoryName).toBe("Filtro Lectura unit");
+  });
+
+  it("detects duplicate question prompts with normalized text", () => {
+    const categoryId = store.createCategory("Duplicados normalizados unit");
+    const questionId = store.createQuestion({
+      categoryId,
+      prompt: "Pregunta   duplicada   normalizada",
+      optionA: "A",
+      optionB: "B",
+      optionC: "C",
+      optionD: "D",
+      correctOption: "A"
+    });
+
+    expect(store.findQuestionByCategoryAndPrompt(categoryId, " pregunta duplicada NORMALIZADA ")?.id).toBe(questionId);
+    expect(store.findQuestionByCategoryAndPrompt(categoryId, "pregunta duplicada normalizada", questionId)).toBeUndefined();
   });
 
   it("imports parsed question rows and skips existing duplicates", async () => {
