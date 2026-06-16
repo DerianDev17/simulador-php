@@ -2,6 +2,7 @@
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import { getAdminSession } from "@/lib/auth";
 import { ensureDefaultSettings } from "@/lib/store";
+import Info from "@lucide/astro/icons/info";
 import ShieldCheck from "@lucide/astro/icons/shield-check";
 import User from "@lucide/astro/icons/user";
 
@@ -49,6 +50,20 @@ const settings = ensureDefaultSettings();
           </div>
         </div>
       </article>
+    </section>
+
+    <section class="rounded-lg border border-sky-200 bg-sky-50 p-5 text-sky-950 dark:border-sky-400/30 dark:bg-sky-500/15 dark:text-sky-100">
+      <div class="flex items-start gap-3">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-white/70 text-sky-700 dark:bg-white/10 dark:text-sky-200">
+          <Info size={20} aria-hidden="true" />
+        </span>
+        <div>
+          <h2 class="font-bold">Modo de usuarios actual</h2>
+          <p class="mt-1 text-sm leading-6">
+            El sistema usa un unico administrador. El progreso publico se separa por visitante anonimo mediante cookie, pero no existe multiusuario real ni perfiles de estudiantes.
+          </p>
+        </div>
+      </div>
     </section>
   </section>
 </AdminLayout>

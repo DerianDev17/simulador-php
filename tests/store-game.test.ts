@@ -274,6 +274,64 @@ describe("store and game flow", () => {
     expect(game.getGameDetails(gameA, learnerA).status).toBe("ready");
   });
 
+  it("requires an explicit decision before replacing an active category game", () => {
+    const suffix = Date.now().toString();
+    const firstCategoryId = store.createCategory(`Partida activa A ${suffix}`);
+    const secondCategoryId = store.createCategory(`Partida activa B ${suffix}`);
+
+    for (let index = 1; index <= 3; index += 1) {
+      store.createQuestion({
+        categoryId: firstCategoryId,
+        prompt: `Pregunta activa A ${suffix}-${index}`,
+        optionA: "A",
+        optionB: "B",
+        optionC: "C",
+        optionD: "D",
+        correctOption: "A"
+      });
+      store.createQuestion({
+        categoryId: secondCategoryId,
+        prompt: `Pregunta activa B ${suffix}-${index}`,
+        optionA: "A",
+        optionB: "B",
+        optionC: "C",
+        optionD: "D",
+        correctOption: "A"
+      });
+    }
+
+    const cookies = createCookieJar();
+    const request = new Request("http://localhost/");
+    const learnerId = `learner-active-${suffix}`;
+    const firstState = game.startOrResumeGame(cookies, request, firstCategoryId, 3, learnerId);
+    expect(firstState.status).toBe("ready");
+    if (firstState.status !== "ready") {
+      return;
+    }
+
+    const conflict = game.startOrResumeGame(cookies, request, secondCategoryId, 3, learnerId);
+    expect(conflict.status).toBe("active-conflict");
+    if (conflict.status !== "active-conflict") {
+      return;
+    }
+    expect(conflict.active.id).toBe(firstState.game.id);
+    expect(conflict.active.categoryId).toBe(firstCategoryId);
+
+    const resumed = game.startOrResumeGame(cookies, request, firstCategoryId, 3, learnerId);
+    expect(resumed.status).toBe("ready");
+    if (resumed.status === "ready") {
+      expect(resumed.game.id).toBe(firstState.game.id);
+    }
+
+    expect(game.discardCurrentGame(cookies, learnerId)).toBe("discarded");
+    const secondState = game.startOrResumeGame(cookies, request, secondCategoryId, 3, learnerId);
+    expect(secondState.status).toBe("ready");
+    if (secondState.status === "ready") {
+      expect(secondState.game.categoryId).toBe(secondCategoryId);
+      expect(secondState.game.id).not.toBe(firstState.game.id);
+    }
+  });
+
   it("stores wrong answers for error review", () => {
     const categoryId = store.createCategory("Categoria repaso errores");
     for (const [index, correctOption] of ["A", "B", "C"].entries()) {

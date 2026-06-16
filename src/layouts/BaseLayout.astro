@@ -43,6 +43,15 @@ const canonicalUrl = canonical ? new URL(canonical, Astro.site ?? Astro.url.orig
     <slot />
     <script is:inline>
       (() => {
+        const skipLink = document.querySelector('a[href="#contenido"]');
+        const main = document.getElementById("contenido");
+        if (skipLink && main) {
+          main.setAttribute("tabindex", "-1");
+          skipLink.addEventListener("click", () => {
+            window.setTimeout(() => main.focus(), 0);
+          });
+        }
+
         const buttons = document.querySelectorAll("[data-theme-toggle]");
         const syncButtons = () => {
           const dark = document.documentElement.classList.contains("dark");

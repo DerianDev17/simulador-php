@@ -54,6 +54,14 @@ export type CompletedGameRef = {
   finishedAt: string;
 };
 
+export type ActiveGameRef = {
+  id: string;
+  categoryId: number;
+  categoryName: string;
+  currentNumber: number;
+  totalQuestions: number;
+};
+
 export type GameState =
   | {
       status: "ready";
@@ -69,6 +77,11 @@ export type GameState =
       categoryName: string;
       availableQuestions: number;
       requiredQuestions: number;
+    }
+  | {
+      status: "active-conflict";
+      requestedCategoryName: string;
+      active: ActiveGameRef;
     }
   | {
       status: "missing-category";
@@ -247,6 +260,16 @@ function completedGameRefFromSession(game: GameSession): CompletedGameRef {
   };
 }
 
+function activeGameRefFromState(game: GameSession, state: Extract<GameState, { status: "ready" }>): ActiveGameRef {
+  return {
+    id: game.id,
+    categoryId: game.categoryId,
+    categoryName: state.categoryName,
+    currentNumber: state.currentNumber,
+    totalQuestions: state.totalQuestions
+  };
+}
+
 function answerDetailsFromGame(game: GameSession): GameDetailQuestion[] {
   const questionMap = new Map(getQuestionsByIds(parseQuestionIds(game)).map((question) => [question.id, question]));
   return parseAnswers(game)
@@ -410,14 +433,28 @@ export function startOrResumeGame(
   const existingId = cookies.get(gameSessionCookie)?.value;
   if (existingId) {
     const existing = db.select().from(gameSessions).where(eq(gameSessions.id, existingId)).get();
-    if (existing && existing.categoryId === categoryId && existing.completed === 0 && (!learnerId || existing.learnerId === learnerId)) {
-      const existingState = gameStateFromSession(existing, category.name);
-      if (existingState.status === "ready") {
-        return existingState;
-      }
+    if (existing && existing.completed === 0) {
+      if (learnerId && existing.learnerId !== learnerId) {
+        clearGameCookie(cookies);
+      } else {
+        const existingCategory = getCategory(existing.categoryId);
+        const existingState = existingCategory ? gameStateFromSession(existing, existingCategory.name) : undefined;
 
-      db.delete(gameSessions).where(eq(gameSessions.id, existing.id)).run();
-      clearGameCookie(cookies);
+        if (existingState?.status === "ready") {
+          if (existing.categoryId === categoryId) {
+            return existingState;
+          }
+
+          return {
+            status: "active-conflict",
+            requestedCategoryName: category.name,
+            active: activeGameRefFromState(existing, existingState)
+          };
+        }
+
+        db.delete(gameSessions).where(eq(gameSessions.id, existing.id)).run();
+        clearGameCookie(cookies);
+      }
     }
   }
 
@@ -451,6 +488,25 @@ export function startOrResumeGame(
   setGameCookie(cookies, request, gameId);
   const game = db.select().from(gameSessions).where(eq(gameSessions.id, gameId)).get() as GameSession;
   return gameStateFromSession(game, category.name);
+}
+
+export function discardCurrentGame(cookies: CookieJar, learnerId?: string): "discarded" | "not-found" {
+  cleanupExpiredGames();
+
+  const existingId = cookies.get(gameSessionCookie)?.value;
+  if (!existingId) {
+    return "not-found";
+  }
+
+  const existing = db.select().from(gameSessions).where(eq(gameSessions.id, existingId)).get();
+  if (!existing || existing.completed === 1 || (learnerId && existing.learnerId !== learnerId)) {
+    clearGameCookie(cookies);
+    return "not-found";
+  }
+
+  db.delete(gameSessions).where(eq(gameSessions.id, existing.id)).run();
+  clearGameCookie(cookies);
+  return "discarded";
 }
 
 function gameStateFromSession(game: GameSession, categoryName: string): GameState {

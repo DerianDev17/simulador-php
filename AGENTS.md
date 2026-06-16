@@ -148,7 +148,7 @@ Implementado:
 Parcial o placeholder:
 
 - `/admin/simulacros`: resumen administrativo, no configuracion avanzada.
-- `/admin/usuarios`: muestra usuario admin, no multiusuario.
+- `/admin/usuarios`: muestra usuario admin y declara que no hay multiusuario real.
 - `/admin/reportes`: resumen persistido basico, no analitica avanzada.
 
 ## Base de datos
@@ -176,6 +176,12 @@ Notas:
 - `game_sessions.answers` guarda un JSON array de respuestas para repasar errores.
 - `runMigrations()` se ejecuta al importar `src/db/client.ts`.
 - Drizzle kit sirve para generar SQL futuro, no para aplicar migraciones runtime.
+
+## Usuarios y progreso
+
+- Decision actual: administrador unico y visitantes publicos anonimos.
+- El progreso publico se separa por cookie `eus_learner_id`.
+- No ampliar `/admin/usuarios`, historial o reportes como multiusuario real sin decidir primero modelo de cuentas, autenticacion y privacidad.
 
 ## Seguridad
 

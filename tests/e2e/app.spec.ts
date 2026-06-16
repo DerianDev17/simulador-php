@@ -21,6 +21,10 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function createWrongAnswerQuizCategory(): Promise<{ id: number; name: string }> {
   const suffix = Date.now().toString();
   const name = `Practica errores E2E ${suffix}`;
@@ -130,6 +134,46 @@ test("public user can open simulacros page and start a seeded simulation", async
 
   await page.locator("article").filter({ hasText: "Razonamiento demo" }).getByRole("link", { name: "Iniciar" }).click();
   await expect(page.getByText("Pregunta 1 de 3")).toBeVisible();
+});
+
+test("public user must resolve an active game before starting another category", async ({ page }) => {
+  const firstCategory = await createWrongAnswerQuizCategory();
+  const secondCategory = await createWrongAnswerQuizCategory();
+
+  try {
+    await page.goto(`/jugar/${firstCategory.id}`);
+    await expect(page.getByText("Pregunta 1 de 3")).toBeVisible();
+    await expect(page.getByText(firstCategory.name)).toBeVisible();
+
+    await page.goto(`/jugar/${secondCategory.id}`);
+    await expect(page.getByRole("heading", { name: "Ya tienes una partida activa" })).toBeVisible();
+    await expect(page.getByRole("link", { name: new RegExp(`Continuar ${escapeRegex(firstCategory.name)}`) })).toBeVisible();
+    await expect(page.getByText(new RegExp(`empezar ${escapeRegex(secondCategory.name)}`))).toBeVisible();
+
+    await page.getByRole("link", { name: new RegExp(`Continuar ${escapeRegex(firstCategory.name)}`) }).click();
+    await expect(page).toHaveURL(new RegExp(`/jugar/${firstCategory.id}$`));
+    await expect(page.getByText(firstCategory.name)).toBeVisible();
+
+    await page.goto(`/jugar/${secondCategory.id}`);
+    await page.getByRole("button", { name: "Descartar y empezar" }).click();
+    await expect(page).toHaveURL(new RegExp(`/jugar/${secondCategory.id}$`));
+    await expect(page.getByText("Pregunta 1 de 3")).toBeVisible();
+    await expect(page.getByText(secondCategory.name)).toBeVisible();
+  } finally {
+    await deleteCategoryAndImages(firstCategory.id);
+    await deleteCategoryAndImages(secondCategory.id);
+  }
+});
+
+test("skip link moves keyboard focus to the main content", async ({ page }) => {
+  await page.goto("/");
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", { name: "Saltar al contenido" });
+  await expect(skipLink).toBeFocused();
+
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#contenido")).toBeFocused();
 });
 
 test("public user can open focused practice page from simulations", async ({ page }) => {
