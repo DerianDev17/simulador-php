@@ -9,8 +9,8 @@ interface Props {
 }
 
 const {
-  title = "Eus3 Simulador",
-  description = "Simulador de cuestionarios Eus3 para practicar por categorias, completar simulacros y revisar resultados.",
+  title = "Semilla Digital",
+  description = "Simulador de cuestionarios Semilla Digital para practicar por categorias, completar simulacros y revisar resultados.",
   robots,
   canonical
 } = Astro.props;
@@ -27,7 +27,7 @@ const canonicalUrl = canonical ? new URL(canonical, Astro.site ?? Astro.url.orig
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
     <meta name="theme-color" content="#f97316" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="/img/eus-logo.png" />
+    <link rel="icon" href="/img/semilla-digital-logo.svg" />
     <title>{title}</title>
     <script is:inline>
       (() => {

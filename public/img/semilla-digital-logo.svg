@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Semilla Digital</title>
+  <desc id="desc">Logo con una semilla y hojas sobre una cuadricula digital.</desc>
+  <defs>
+    <linearGradient id="seed" x1="24" y1="74" x2="70" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f97316" />
+      <stop offset="0.58" stop-color="#22c55e" />
+      <stop offset="1" stop-color="#0ea5e9" />
+    </linearGradient>
+    <linearGradient id="leaf" x1="31" y1="62" x2="72" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16a34a" />
+      <stop offset="1" stop-color="#86efac" />
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="22" fill="#ffffff" />
+  <rect x="8" y="8" width="80" height="80" rx="18" fill="#fff7ed" />
+  <path d="M48 76c-12.4-8.1-20-18.8-20-30.3 0-10.5 7-19.9 20-25.7 13 5.8 20 15.2 20 25.7C68 57.2 60.4 67.9 48 76Z" fill="url(#seed)" />
+  <path d="M47.8 68.5c-5-8.6-7.4-17.6-7.1-27.1" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+  <path d="M51.7 43.7c7.4-11.4 17.7-17 30.8-16.8-2.2 12.9-9.2 21.4-21.1 25.5-4.8 1.7-9.4-3.9-9.7-8.7Z" fill="url(#leaf)" />
+  <path d="M50.6 45.2c8.8-3 17.1-7.9 24.9-14.9" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.9" />
+  <rect x="18" y="18" width="6" height="6" rx="2" fill="#0ea5e9" opacity="0.9" />
+  <rect x="72" y="66" width="6" height="6" rx="2" fill="#f97316" opacity="0.9" />
+  <rect x="19" y="69" width="5" height="5" rx="1.5" fill="#22c55e" opacity="0.9" />
+  <rect x="70" y="18" width="5" height="5" rx="1.5" fill="#0f172a" opacity="0.2" />
+</svg>

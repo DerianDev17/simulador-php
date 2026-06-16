@@ -45,7 +45,7 @@ export const GET: APIRoute = ({ cookies }) => {
   return new Response(`${body}\n`, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="reportes-eus3.csv"',
+      "Content-Disposition": 'attachment; filename="reportes-semilla-digital.csv"',
       "Cache-Control": "no-store"
     }
   });
