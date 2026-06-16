@@ -64,7 +64,7 @@ const state = startOrResumeGame(Astro.cookies, Astro.request, categoryId, settin
               {state.status === "ready" ? state.categoryName : state.status === "active-conflict" ? state.requestedCategoryName : "Simulador"}
             </p>
             <p class="text-[11px] text-slate-500 dark:text-slate-400">
-              {state.status === "ready" ? `Pregunta ${state.currentNumber} de ${state.totalQuestions}` : state.status === "active-conflict" ? "Partida activa detectada" : "EUS3 Preuniversitario"}
+              {state.status === "ready" ? `Pregunta ${state.currentNumber} de ${state.totalQuestions}` : state.status === "active-conflict" ? "Partida activa detectada" : "Semilla Digital"}
             </p>
           </div>
         </a>
