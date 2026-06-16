@@ -22,7 +22,7 @@ import {
   incrementCompleted
 } from "./store";
 
-export const gameSessionCookie = "eus_game_session";
+export const gameSessionCookie = "semilla_game_session";
 const gameHours = 4;
 
 export type GameAnswer = {

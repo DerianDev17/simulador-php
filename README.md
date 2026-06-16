@@ -1,6 +1,6 @@
-# Simulador EUS
+# Semilla Digital
 
-Aplicacion web moderna para administrar y responder cuestionarios por categoria. Esta version reemplaza el runtime PHP/MySQL por Astro SSR, TypeScript, Tailwind CSS y SQLite local.
+Aplicacion web moderna de Semilla Digital para administrar y responder cuestionarios por categoria. Esta version reemplaza el runtime PHP/MySQL por Astro SSR, TypeScript, Tailwind CSS y SQLite local.
 
 ## Stack
 
@@ -143,6 +143,7 @@ Tablas principales:
 
 - El runtime PHP anterior fue movido a `legacy/php-app/`.
 - Los assets publicos fueron movidos a `public/img/`.
+- El logo activo de marca es `public/img/semilla-digital-logo.svg`.
 - Las imagenes demo de preguntas fueron movidas a `public/demo/questions/`.
 - Las imagenes subidas por el admin se guardan en `data/uploads/questions/` y se sirven desde `/uploads/questions/[archivo]`.
 - No se migro MySQL porque el repositorio no tenia dump real.

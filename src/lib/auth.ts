@@ -5,7 +5,7 @@ import { adminSessions, loginAttempts, type AdminSession } from "@/db/schema";
 import type { CookieJar } from "./cookies";
 import { secureCookie } from "./cookies";
 
-export const adminSessionCookie = "eus_admin_session";
+export const adminSessionCookie = "semilla_admin_session";
 const sessionDays = 7;
 const loginWindowMinutes = 15;
 const maxFailedAttempts = 5;

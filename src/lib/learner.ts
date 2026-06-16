@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { CookieJar } from "./cookies";
 import { secureCookie } from "./cookies";
 
-export const learnerCookie = "eus_learner_id";
+export const learnerCookie = "semilla_learner_id";
 const learnerCookieMaxAge = 365 * 24 * 60 * 60;
 const learnerIdPattern = /^[A-Za-z0-9_-]{32,}$/;
 

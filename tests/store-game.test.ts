@@ -10,7 +10,7 @@ type GameModule = typeof import("../src/lib/game");
 type DbClientModule = typeof import("../src/db/client");
 type AuthModule = typeof import("../src/lib/auth");
 
-const tempDir = mkdtempSync(join(tmpdir(), "eus-sim-"));
+const tempDir = mkdtempSync(join(tmpdir(), "semilla-sim-"));
 let client: DbClientModule;
 let store: StoreModule;
 let game: GameModule;

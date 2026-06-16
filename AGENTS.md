@@ -180,7 +180,7 @@ Notas:
 ## Usuarios y progreso
 
 - Decision actual: administrador unico y visitantes publicos anonimos.
-- El progreso publico se separa por cookie `eus_learner_id`.
+- El progreso publico se separa por cookie `semilla_learner_id`.
 - No ampliar `/admin/usuarios`, historial o reportes como multiusuario real sin decidir primero modelo de cuentas, autenticacion y privacidad.
 
 ## Seguridad
